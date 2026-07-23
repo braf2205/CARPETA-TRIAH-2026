@@ -84,6 +84,7 @@ app.include_router(goals.router)
 app.include_router(companies.router)
 app.include_router(households.router)
 
+
 # =========================
 # ROOT
 # =========================

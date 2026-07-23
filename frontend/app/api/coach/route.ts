@@ -1,91 +1,52 @@
-export async function POST() {
+import { NextResponse } from "next/server";
+
+const BACKEND_URL =
+  process.env.BACKEND_URL ||
+  "http://127.0.0.1:8000";
+
+export async function POST(request: Request) {
   try {
-    const txRes = await fetch(
-      "http://127.0.0.1:8000/transactions/",
-      {
-        cache: "no-store",
-      }
-    );
+    const body = await request.json().catch(() => ({}));
 
-    const goalsRes = await fetch(
-      "http://127.0.0.1:8000/goals/",
-      {
-        cache: "no-store",
-      }
-    );
+    const question =
+      body.question ||
+      "¿Cómo puedo mejorar mi salud financiera?";
 
-    const transactions = await txRes.json();
-    const goals = await goalsRes.json();
+    const household_id =
+      body.household_id || 1;
 
-    const income = transactions
-      .filter((t: any) => t.type === "income")
-      .reduce((acc: number, t: any) => acc + t.amount, 0);
-
-    const expenses = transactions
-      .filter((t: any) => t.type === "expense")
-      .reduce((acc: number, t: any) => acc + t.amount, 0);
-
-    const savings = income - expenses;
-
-    const savingsRate =
-      income > 0
-        ? (savings / income) * 100
-        : 0;
-
-    const totalTarget = goals.reduce(
-      (acc: number, g: any) => acc + g.target_amount,
-      0
-    );
-
-    const totalCurrent = goals.reduce(
-      (acc: number, g: any) => acc + g.current_amount,
-      0
-    );
-
-    const goalProgress =
-      totalTarget > 0
-        ? (totalCurrent / totalTarget) * 100
-        : 0;
-
-    let risk = "Alto";
-
-    if (savingsRate > 50) {
-      risk = "Saludable";
-    } else if (savingsRate > 25) {
-      risk = "Moderado";
-    }
-
-    return Response.json({
-      family_diagnosis: {
-        summary:
-          `Ingresos: $${income.toLocaleString()} | ` +
-          `Gastos: $${expenses.toLocaleString()} | ` +
-          `Ahorro: $${savings.toLocaleString()}`
+    const response = await fetch(`${BACKEND_URL}/ai/financial-advisor`, {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
       },
-
-      detected_risks: [
-        `Nivel financiero: ${risk}`
-      ],
-
-      next_30_days: [
-        "Controlar gastos variables",
-        "Mantener disciplina de ahorro"
-      ],
-
-      next_90_days: [
-        `Cumplir metas (${goalProgress.toFixed(1)}%)`,
-        "Fortalecer fondo de emergencia"
-      ]
+      body: JSON.stringify({
+        household_id,
+        question,
+      }),
     });
 
+    if (!response.ok) {
+      return NextResponse.json(
+        {
+          error: "AI Coach backend error",
+          status: response.status,
+          detail: await response.text(),
+        },
+        { status: response.status }
+      );
+    }
+
+    return NextResponse.json(await response.json());
   } catch (error) {
-    return Response.json(
+    return NextResponse.json(
       {
-        error: String(error)
+        error: "AI Coach dynamic error",
+        detail: error instanceof Error ? error.message : String(error),
       },
-      {
-        status: 500
-      }
+      { status: 500 }
     );
   }
 }

@@ -5,7 +5,8 @@ from app.models.goal import Goal
 from app.models.debt import Debt
 from app.models.company import Company
 from app.models.household import Household
-
+from app.services.executive_service import build_executive_intelligence
+from app.services.twin_service import build_financial_twin
 from app.services.risk_engine import calculate_financial_score
 
 
@@ -159,7 +160,7 @@ def build_dashboard(db: Session):
         else 0
     )
 
-    # =================================================
+     # =================================================
     # EXECUTIVE KPI
     # =================================================
 
@@ -171,17 +172,23 @@ def build_dashboard(db: Session):
 
     executive_summary = {
 
-        "monthly_income": income,
+        "monthly_income":
+            income,
 
-        "monthly_expenses": expenses,
+        "monthly_expenses":
+            expenses,
 
-        "monthly_savings": savings,
+        "monthly_savings":
+            savings,
 
-        "savings_rate": savings_rate,
+        "savings_rate":
+            savings_rate,
 
-        "debt_ratio": debt_ratio,
+        "debt_ratio":
+            debt_ratio,
 
-        "goal_progress": goal_progress_percentage,
+        "goal_progress":
+            goal_progress_percentage,
 
         "financial_health_score":
             financial_health_score,
@@ -191,10 +198,10 @@ def build_dashboard(db: Session):
     }
 
     # =================================================
-    # RETURN
+    # DASHBOARD PAYLOAD
     # =================================================
 
-    return {
+    dashboard_payload = {
 
         # ---------------------------------------------
         # RESUMEN EJECUTIVO
@@ -294,3 +301,24 @@ def build_dashboard(db: Session):
         "company_margin":
             company_margin
     }
+
+    # =================================================
+    # EXECUTIVE INTELLIGENCE
+    # =================================================
+
+    dashboard_payload["executive_intelligence"] = (
+        build_executive_intelligence(dashboard_payload)
+    )
+        # =================================================
+    # FINANCIAL TWIN INTELLIGENCE
+    # =================================================
+
+    dashboard_payload["financial_twin_intelligence"] = (
+        build_financial_twin(dashboard_payload)
+    )
+
+    # =================================================
+    # RETURN
+    # =================================================
+
+    return dashboard_payload

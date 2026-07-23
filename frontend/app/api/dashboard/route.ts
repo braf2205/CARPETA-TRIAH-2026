@@ -10,9 +10,8 @@ import { NextResponse } from "next/server";
    ============================================================ */
 
 const BACKEND_URL =
-  process.env.BACKEND_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://solid-space-happiness-vpvxrrv6qx7gcprrw-8000.app.github.dev";
+  process.env.BACKEND_URL?.trim() ||
+  "http://127.0.0.1:8000";
 
 /* ============================================================
    TYPES
@@ -54,12 +53,14 @@ export async function GET() {
   const backendUrl = normalizeBackendUrl(BACKEND_URL);
   const endpoint = `${backendUrl}/dashboard/`;
 
-  try {
-    const controller = new AbortController();
+  const controller = new AbortController();
 
-    const timeout = setTimeout(() => {
-      controller.abort();
-    }, 15000);
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, 15000);
+
+  try {
+    console.log("TRIAH Dashboard Proxy endpoint:", endpoint);
 
     const response = await fetch(endpoint, {
       method: "GET",
@@ -70,15 +71,15 @@ export async function GET() {
       },
     });
 
+    const backendText = await response.text();
+
     clearTimeout(timeout);
 
     if (!response.ok) {
-      const backendMessage = await response.text();
-
       return buildErrorResponse(
         "Dashboard backend error",
-        backendMessage || "FastAPI no respondió correctamente.",
-        response.status,
+        backendText || "FastAPI no respondió correctamente.",
+        500,
         {
           backend_status: response.status,
           endpoint,
@@ -86,7 +87,7 @@ export async function GET() {
       );
     }
 
-    const dashboard: DashboardResponse = await response.json();
+    const dashboard: DashboardResponse = JSON.parse(backendText);
 
     return NextResponse.json(dashboard, {
       status: 200,
@@ -95,6 +96,10 @@ export async function GET() {
       },
     });
   } catch (error) {
+    clearTimeout(timeout);
+
+    console.error("TRIAH Dashboard Proxy Error:", error);
+
     return buildErrorResponse(
       "Dashboard dynamic error",
       error instanceof Error ? error.message : String(error),
